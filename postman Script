@@ -1,0 +1,56 @@
+// Define your sample JSON structure
+const sampleJson = {
+    "id": 1,
+    "name": "John Doe",
+    "email": "john.doe@example.com",
+    "address": {
+        "street": "123 Main St",
+        "city": "New York"
+    }
+};
+
+// Get the actual response
+const actualJson = pm.response.json();
+
+// Helper function to get all keys, including nested ones
+function getAllKeys(obj, prefix = "") {
+    return Object.keys(obj).reduce((keys, key) => {
+        const fullPath = prefix ? ${prefix}.${key} : key;
+        if (typeof obj[key] === "object" && obj[key] !== null && !Array.isArray(obj[key])) {
+            keys.push(...getAllKeys(obj[key], fullPath));
+        } else {
+            keys.push(fullPath);
+        }
+        return keys;
+    }, []);
+}
+
+// Get all keys from both JSON structures
+const sampleKeys = getAllKeys(sampleJson);
+const actualKeys = getAllKeys(actualJson);
+
+// Compare keys
+const addedFields = actualKeys.filter(key => !sampleKeys.includes(key));
+const removedFields = sampleKeys.filter(key => !actualKeys.includes(key));
+
+// Log results
+if (addedFields.length > 0) {
+    console.log("Fields added:", addedFields);
+} else {
+    console.log("No fields added.");
+}
+
+if (removedFields.length > 0) {
+    console.log("Fields removed:", removedFields);
+} else {
+    console.log("No fields removed.");
+}
+
+// Set test results
+pm.test("Fields added", () => {
+    pm.expect(addedFields.length).to.equal(0, Added fields: ${addedFields.join(", ")});
+});
+
+pm.test("Fields removed", () => {
+    pm.expect(removedFields.length).to.equal(0, Removed fields: ${removedFields.join(", ")});
+});
