@@ -1,56 +1,30 @@
-// Define your sample JSON structure
-const sampleJson = {
-    "id": 1,
-    "name": "John Doe",
-    "email": "john.doe@example.com",
-    "address": {
-        "street": "123 Main St",
-        "city": "New York"
+// Define the expected response JSON
+const expectedResponse = {
+    "status": "success",
+    "data": {
+        "id": 123,
+        "name": "John Doe"
     }
 };
 
-// Get the actual response
-const actualJson = pm.response.json();
+// Get the actual response body
+let actualResponse = pm.response.json();
 
-// Helper function to get all keys, including nested ones
-function getAllKeys(obj, prefix = "") {
-    return Object.keys(obj).reduce((keys, key) => {
-        const fullPath = prefix ? ${prefix}.${key} : key;
-        if (typeof obj[key] === "object" && obj[key] !== null && !Array.isArray(obj[key])) {
-            keys.push(...getAllKeys(obj[key], fullPath));
-        } else {
-            keys.push(fullPath);
-        }
-        return keys;
-    }, []);
-}
+// Use deep-diff library to compare the objects
+const differences = DeepDiff(actualResponse, expectedResponse);
 
-// Get all keys from both JSON structures
-const sampleKeys = getAllKeys(sampleJson);
-const actualKeys = getAllKeys(actualJson);
-
-// Compare keys
-const addedFields = actualKeys.filter(key => !sampleKeys.includes(key));
-const removedFields = sampleKeys.filter(key => !actualKeys.includes(key));
-
-// Log results
-if (addedFields.length > 0) {
-    console.log("Fields added:", addedFields);
+// Log the differences in the console
+if (differences) {
+    console.log("Differences found:", differences);
 } else {
-    console.log("No fields added.");
+    console.log("No differences found. The responses are identical.");
 }
 
-if (removedFields.length > 0) {
-    console.log("Fields removed:", removedFields);
-} else {
-    console.log("No fields removed.");
-}
-
-// Set test results
-pm.test("Fields added", () => {
-    pm.expect(addedFields.length).to.equal(0, Added fields: ${addedFields.join(", ")});
-});
-
-pm.test("Fields removed", () => {
-    pm.expect(removedFields.length).to.equal(0, Removed fields: ${removedFields.join(", ")});
+// Optionally, display a message if the comparison fails
+pm.test("Compare response with expected JSON and log differences", function() {
+    if (differences) {
+        pm.expect(differences).to.not.be.null;
+    } else {
+        pm.expect(differences).to.be.null;  // No differences
+    }
 });
