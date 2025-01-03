@@ -1,3 +1,40 @@
+// Function to compare two objects and return the differences
+function compareObjects(obj1, obj2, path = '') {
+    let differences = [];
+
+    // Check if both values are objects (but not null)
+    if (typeof obj1 === 'object' && obj1 !== null && typeof obj2 === 'object' && obj2 !== null) {
+        let keys = new Set([...Object.keys(obj1), ...Object.keys(obj2)]);  // Get all unique keys
+
+        // Compare each key from both objects
+        keys.forEach(key => {
+            const newPath = path ? ${path}.${key} : key;
+
+            if (!obj1.hasOwnProperty(key)) {
+                differences.push({ kind: 'N', path: newPath, lhs: undefined, rhs: obj2[key] }); // New key in obj2
+            } else if (!obj2.hasOwnProperty(key)) {
+                differences.push({ kind: 'D', path: newPath, lhs: obj1[key], rhs: undefined }); // Key missing in obj2
+            } else {
+                // If both objects have the same key, compare their values
+                const value1 = obj1[key];
+                const value2 = obj2[key];
+
+                // If values are different (even objects or arrays)
+                if (JSON.stringify(value1) !== JSON.stringify(value2)) {
+                    differences.push({ kind: 'E', path: newPath, lhs: value1, rhs: value2 }); // Edited value
+                }
+            }
+        });
+    } else {
+        // If the values are primitive and different
+        if (obj1 !== obj2) {
+            differences.push({ kind: 'E', path, lhs: obj1, rhs: obj2 }); // Edited value
+        }
+    }
+
+    return differences;
+}
+
 // Define the expected response JSON
 const expectedResponse = {
     "status": "success",
@@ -7,24 +44,20 @@ const expectedResponse = {
     }
 };
 
-// Get the actual response body
+// Get the actual response body from the API response
 let actualResponse = pm.response.json();
 
-// Use deep-diff library to compare the objects
-const differences = DeepDiff(actualResponse, expectedResponse);
+// Compare the actual response with the expected response
+let differences = compareObjects(actualResponse, expectedResponse);
 
-// Log the differences in the console
-if (differences) {
+// Log the differences in the Postman console
+if (differences.length > 0) {
     console.log("Differences found:", differences);
 } else {
     console.log("No differences found. The responses are identical.");
 }
 
-// Optionally, display a message if the comparison fails
+// Optionally, create a test assertion to check if there are any differences
 pm.test("Compare response with expected JSON and log differences", function() {
-    if (differences) {
-        pm.expect(differences).to.not.be.null;
-    } else {
-        pm.expect(differences).to.be.null;  // No differences
-    }
+    pm.expect(differences).to.have.lengthOf(0); // This will fail if there are any differences
 });
